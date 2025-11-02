@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 export default function Home() {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-20 px-4 py-16 md:px-8 md:py-24">
@@ -15,18 +17,18 @@ export default function Home() {
             relationships, and purpose.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <a
-              href="#contact"
+            <Link
+              href="/onboarding"
               className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               Begin your chart
-            </a>
-            <a
+            </Link>
+            <Link
               href="#features"
               className="inline-flex h-10 items-center justify-center rounded-md border border-border px-5 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               Explore features
-            </a>
+            </Link>
           </div>
         </div>
         <div className="rounded-3xl border border-border/80 bg-gradient-to-br from-primary/10 via-background to-secondary/20 p-10 text-sm text-muted-foreground shadow-lg shadow-primary/5">
