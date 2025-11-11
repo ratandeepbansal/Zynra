@@ -11,6 +11,7 @@ import { calculateBirthChart } from "@/lib/astrology"
 import { calculateNumerologyProfile } from "@/lib/numerology"
 import { BirthChartDisplay } from "./birth-chart"
 import { NumerologyProfileDisplay } from "./numerology-profile"
+import { AIAnalysis } from "./ai-analysis"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export function ResultsOverview() {
@@ -108,10 +109,11 @@ export function ResultsOverview() {
 
       {/* Main Results Tabs */}
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="astrology">Astrology</TabsTrigger>
           <TabsTrigger value="numerology">Numerology</TabsTrigger>
+          <TabsTrigger value="ai">AI Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -167,6 +169,23 @@ export function ResultsOverview() {
           ) : (
             <div className="rounded-3xl border border-border/70 bg-card px-6 py-10 text-center text-sm text-muted-foreground">
               Unable to calculate numerology profile. Please check your birth information.
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="ai">
+          {birthChart && numerologyProfile ? (
+            <AIAnalysis
+              birthChart={birthChart}
+              numerologyProfile={numerologyProfile}
+              userData={{
+                fullName: userData.fullName,
+                dateOfBirth: userData.dateOfBirth,
+              }}
+            />
+          ) : (
+            <div className="rounded-3xl border border-border/70 bg-card px-6 py-10 text-center text-sm text-muted-foreground">
+              Unable to generate AI insights. Please check your birth information.
             </div>
           )}
         </TabsContent>
