@@ -12,6 +12,7 @@ import { calculateNumerologyProfile } from "@/lib/numerology"
 import { BirthChartDisplay } from "./birth-chart"
 import { NumerologyProfileDisplay } from "./numerology-profile"
 import { AIAnalysis } from "./ai-analysis"
+import { DownloadPDFButton } from "./download-pdf-button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export function ResultsOverview() {
@@ -85,11 +86,20 @@ export function ResultsOverview() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
       {/* User Info Summary */}
       <section className="rounded-3xl border border-border/70 bg-card px-6 py-8 shadow-sm shadow-primary/5 sm:px-10">
-        <header className="space-y-2">
-          <h1 className="text-2xl font-semibold text-foreground">Your Cosmic Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Complete astrology and numerology analysis based on your birth information.
-          </p>
+        <header className="flex items-start justify-between">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold text-foreground">Your Cosmic Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              Complete astrology and numerology analysis based on your birth information.
+            </p>
+          </div>
+          {birthChart && numerologyProfile && (
+            <DownloadPDFButton
+              userData={userData}
+              birthChart={birthChart}
+              numerologyProfile={numerologyProfile}
+            />
+          )}
         </header>
         <dl className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           <InfoRow label="Full name" value={userData.fullName} />
