@@ -18,6 +18,61 @@ interface AIAnalysisProps {
 
 type AnalysisType = "general" | "strengths" | "challenges" | "guidance"
 
+function FormattedAnalysis({ content }: { content: string }) {
+  // Parse markdown-style headers (### Header) and format the content
+  const lines = content.split('\n')
+  const elements: React.ReactNode[] = []
+  let currentParagraph: string[] = []
+  let key = 0
+
+  const flushParagraph = () => {
+    if (currentParagraph.length > 0) {
+      elements.push(
+        <p key={key++} className="mb-4 text-sm leading-relaxed text-foreground/90">
+          {currentParagraph.join('\n')}
+        </p>
+      )
+      currentParagraph = []
+    }
+  }
+
+  lines.forEach((line) => {
+    const trimmedLine = line.trim()
+
+    // Check for ### headers
+    if (trimmedLine.startsWith('### ')) {
+      flushParagraph()
+      const headerText = trimmedLine.replace('### ', '')
+      elements.push(
+        <h3 key={key++} className="mb-3 mt-6 text-lg font-semibold text-primary first:mt-0">
+          {headerText}
+        </h3>
+      )
+    }
+    // Check for ** bold text **
+    else if (trimmedLine.includes('**')) {
+      flushParagraph()
+      const parts = trimmedLine.split('**')
+      const formatted = parts.map((part, i) =>
+        i % 2 === 1 ? <strong key={i} className="font-semibold text-foreground">{part}</strong> : part
+      )
+      currentParagraph.push(formatted.join(''))
+    }
+    // Empty line - paragraph break
+    else if (trimmedLine === '') {
+      flushParagraph()
+    }
+    // Regular text
+    else {
+      currentParagraph.push(trimmedLine)
+    }
+  })
+
+  flushParagraph()
+
+  return <div className="space-y-2">{elements}</div>
+}
+
 export function AIAnalysis({ birthChart, numerologyProfile, userData }: AIAnalysisProps) {
   const [activeTab, setActiveTab] = React.useState<AnalysisType>("general")
   const [analyses, setAnalyses] = React.useState<Record<AnalysisType, string>>({
@@ -134,9 +189,7 @@ export function AIAnalysis({ birthChart, numerologyProfile, userData }: AIAnalys
               </div>
             ) : analyses[type] ? (
               <div className="prose prose-sm dark:prose-invert max-w-none">
-                <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-                  {analyses[type]}
-                </div>
+                <FormattedAnalysis content={analyses[type]} />
               </div>
             ) : (
               <div className="flex min-h-[200px] items-center justify-center">
