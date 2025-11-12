@@ -1,90 +1,40 @@
 "use client"
 
 import * as React from "react"
-import pb, { auth, type User } from "@/lib/pocketbase"
+import { useUser } from "@clerk/nextjs"
+import { useMutation, useQuery } from "convex/react"
+import { api } from "../../convex/_generated/api"
 
 interface AuthContextType {
-  user: User | null
+  user: any | null
   isLoading: boolean
-  login: () => Promise<void>
-  logout: () => void
-  refreshAuth: () => Promise<void>
+  convexUser: any | null
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = React.useState<User | null>(null)
-  const [isLoading, setIsLoading] = React.useState(true)
+  const { user: clerkUser, isLoaded } = useUser()
+  const storeUser = useMutation(api.auth.storeUser)
+  const convexUser = useQuery(api.auth.getCurrentUser)
 
-  // Initialize auth state
+  // Sync Clerk user to Convex database
   React.useEffect(() => {
-    const initAuth = async () => {
-      try {
-        // Check if we have a valid token
-        if (auth.isAuthenticated()) {
-          const currentUser = auth.getCurrentUser()
-          setUser(currentUser)
-
-          // Try to refresh the auth
-          await auth.refresh()
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error)
-        auth.logout()
-      } finally {
-        setIsLoading(false)
-      }
+    if (isLoaded && clerkUser) {
+      storeUser({
+        tokenIdentifier: clerkUser.id,
+        name: clerkUser.fullName || clerkUser.firstName || "Unknown",
+        email: clerkUser.primaryEmailAddress?.emailAddress || "",
+        image: clerkUser.imageUrl,
+        provider: "clerk",
+      })
     }
-
-    initAuth()
-
-    // Subscribe to auth state changes
-    const unsubscribe = pb.authStore.onChange((token, model) => {
-      setUser(model as User | null)
-    })
-
-    return () => {
-      unsubscribe()
-    }
-  }, [])
-
-  const login = async () => {
-    try {
-      setIsLoading(true)
-      await auth.loginWithGoogle()
-      const currentUser = auth.getCurrentUser()
-      setUser(currentUser)
-    } catch (error) {
-      console.error('Login error:', error)
-      throw error
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const logout = () => {
-    auth.logout()
-    setUser(null)
-  }
-
-  const refreshAuth = async () => {
-    try {
-      await auth.refresh()
-      const currentUser = auth.getCurrentUser()
-      setUser(currentUser)
-    } catch (error) {
-      console.error('Refresh error:', error)
-      logout()
-    }
-  }
+  }, [isLoaded, clerkUser, storeUser])
 
   const value = {
-    user,
-    isLoading,
-    login,
-    logout,
-    refreshAuth,
+    user: clerkUser,
+    isLoading: !isLoaded,
+    convexUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -93,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = React.useContext(AuthContext)
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider")
   }
   return context
 }
