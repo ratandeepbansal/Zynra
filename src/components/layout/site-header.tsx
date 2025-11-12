@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation"
 
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { AuthButton } from "@/components/auth/auth-button"
 
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/#features", label: "Features" },
-  { href: "/#roadmap", label: "Roadmap" },
-  { href: "/#contact", label: "Contact" },
+  { href: "/onboarding", label: "Get Started" },
 ]
 
 export function SiteHeader() {
@@ -36,8 +36,9 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <ThemeToggle />
+          <AuthButton />
         </div>
       </div>
     </header>
