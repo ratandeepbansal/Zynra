@@ -153,7 +153,7 @@ interface PDFReportProps {
   userData: {
     fullName: string
     dateOfBirth: string
-    birthTime: string
+    birthTime: { hour: number; minute: number; period: "AM" | "PM" }
     location: {
       city: string
       country: string
@@ -184,6 +184,12 @@ export const PDFReport: React.FC<PDFReportProps> = ({
     }
   }
 
+  const formatBirthTime = (birthTime: { hour: number; minute: number; period: "AM" | "PM" }) => {
+    const hour = birthTime.hour.toString().padStart(2, "0")
+    const minute = birthTime.minute.toString().padStart(2, "0")
+    return `${hour}:${minute} ${birthTime.period}`
+  }
+
   return (
     <Document>
       {/* Page 1: Overview and Birth Data */}
@@ -206,7 +212,7 @@ export const PDFReport: React.FC<PDFReportProps> = ({
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Birth Time:</Text>
-            <Text style={styles.value}>{userData.birthTime}</Text>
+            <Text style={styles.value}>{formatBirthTime(userData.birthTime)}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Birth Location:</Text>

@@ -290,12 +290,21 @@ function calculateAspects(planets: Record<string, PlanetPosition>): Aspect[] {
  */
 export function calculateBirthChart(
   dateOfBirth: string,
-  birthTime: string,
+  birthTime: { hour: number; minute: number; period: "AM" | "PM" },
   location: { lat: number; lng: number; timezone: string }
 ): BirthChart {
   // Parse date and time
   const [year, month, day] = dateOfBirth.split("-").map(Number)
-  const [hour, minute] = birthTime.split(":").map(Number)
+
+  // Convert 12-hour format to 24-hour format
+  let hour = birthTime.hour
+  const minute = birthTime.minute
+
+  if (birthTime.period === "PM" && hour !== 12) {
+    hour += 12
+  } else if (birthTime.period === "AM" && hour === 12) {
+    hour = 0
+  }
 
   // Calculate UTC offset from timezone (simplified - in production use proper timezone library)
   const utcOffset = parseFloat(location.timezone.replace("UTC", "").replace("+", "")) || 0

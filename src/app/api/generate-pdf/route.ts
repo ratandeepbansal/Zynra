@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       userData: {
         fullName: string
         dateOfBirth: string
-        birthTime: string
+        birthTime: { hour: number; minute: number; period: "AM" | "PM" }
         location: {
           city: string
           country: string
