@@ -126,7 +126,7 @@ export function ResultsOverview() {
           <TabsTrigger value="ai">AI Insights</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className="mt-6 space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             {/* Sun, Moon, Rising */}
             {birthChart && (
@@ -163,7 +163,7 @@ export function ResultsOverview() {
           </div>
         </TabsContent>
 
-        <TabsContent value="astrology">
+        <TabsContent value="astrology" className="mt-6">
           {birthChart ? (
             <BirthChartDisplay chart={birthChart} />
           ) : (
@@ -173,7 +173,7 @@ export function ResultsOverview() {
           )}
         </TabsContent>
 
-        <TabsContent value="numerology">
+        <TabsContent value="numerology" className="mt-6">
           {numerologyProfile ? (
             <NumerologyProfileDisplay profile={numerologyProfile} />
           ) : (
@@ -183,7 +183,7 @@ export function ResultsOverview() {
           )}
         </TabsContent>
 
-        <TabsContent value="ai">
+        <TabsContent value="ai" className="mt-6">
           {birthChart && numerologyProfile ? (
             <AIAnalysis
               birthChart={birthChart}
