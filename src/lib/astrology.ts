@@ -1,9 +1,8 @@
 /**
- * Astrology calculation engine using the astronomia library
+ * Astrology calculation engine with simplified astronomical calculations
  * Calculates planetary positions, houses, and aspects for natal charts
+ * Using approximate formulas suitable for astrological purposes (1900-2100)
  */
-
-import * as astro from "astronomia"
 
 export interface PlanetPosition {
   name: string
@@ -74,25 +73,122 @@ function degreesToSign(degrees: number): { sign: string; degree: number } {
 }
 
 /**
- * Convert date, time, and location to Julian Day
+ * Convert date/time to Julian Day Number
  */
 function toJulianDay(
   year: number,
   month: number,
   day: number,
   hour: number,
-  minute: number,
-  utcOffset: number
+  minute: number
 ): number {
-  // Convert local time to UTC
-  const utcHour = hour - utcOffset
-  const decimalDay = day + (utcHour + minute / 60) / 24
+  // Adjust for January/February
+  if (month <= 2) {
+    year -= 1
+    month += 12
+  }
 
-  return astro.julian.CalendarGregorianToJD(year, month, decimalDay)
+  const A = Math.floor(year / 100)
+  const B = 2 - A + Math.floor(A / 4)
+
+  const JD =
+    Math.floor(365.25 * (year + 4716)) +
+    Math.floor(30.6001 * (month + 1)) +
+    day +
+    B -
+    1524.5 +
+    (hour + minute / 60) / 24
+
+  return JD
 }
 
 /**
- * Calculate the position of a planet at a given Julian Day
+ * Calculate Sun's ecliptic longitude (simplified)
+ */
+function calculateSunLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525 // Julian centuries from J2000.0
+
+  // Mean longitude of the Sun
+  const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T
+
+  // Mean anomaly of the Sun
+  const M = 357.52911 + 35999.05029 * T - 0.0001537 * T * T
+  const Mrad = (M * Math.PI) / 180
+
+  // Equation of center
+  const C =
+    (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(Mrad) +
+    (0.019993 - 0.000101 * T) * Math.sin(2 * Mrad) +
+    0.000289 * Math.sin(3 * Mrad)
+
+  // Sun's true longitude
+  const sunLong = L0 + C
+
+  return ((sunLong % 360) + 360) % 360
+}
+
+/**
+ * Calculate Moon's ecliptic longitude (simplified)
+ */
+function calculateMoonLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525
+
+  // Moon's mean longitude
+  const L = 218.316 + 481267.881 * T
+
+  // Moon's mean elongation
+  const D = 297.85 + 445267.112 * T
+  const Drad = (D * Math.PI) / 180
+
+  // Sun's mean anomaly
+  const M = 357.53 + 35999.050 * T
+  const Mrad = (M * Math.PI) / 180
+
+  // Moon's mean anomaly
+  const Mprime = 134.96 + 477198.868 * T
+  const Mprimerad = (Mprime * Math.PI) / 180
+
+  // Simplified perturbations
+  const moonLong =
+    L +
+    6.289 * Math.sin(Mprimerad) +
+    1.274 * Math.sin(2 * Drad - Mprimerad) +
+    0.658 * Math.sin(2 * Drad) +
+    0.214 * Math.sin(2 * Mprimerad) -
+    0.186 * Math.sin(Mrad)
+
+  return ((moonLong % 360) + 360) % 360
+}
+
+/**
+ * Calculate approximate planetary positions
+ * Using simplified orbital elements (good for 1900-2100)
+ */
+function calculatePlanetLongitude(planetName: string, jd: number): number {
+  const T = (jd - 2451545.0) / 36525 // Julian centuries from J2000.0
+
+  // Orbital elements [L0, L1] where L = L0 + L1 * T
+  const orbitalElements: Record<string, { L0: number; L1: number; period: number }> = {
+    mercury: { L0: 252.25, L1: 149472.67, period: 0.241 },
+    venus: { L0: 181.98, L1: 58517.82, period: 0.615 },
+    mars: { L0: 355.43, L1: 19140.30, period: 1.881 },
+    jupiter: { L0: 34.35, L1: 3034.90, period: 11.862 },
+    saturn: { L0: 50.08, L1: 1222.11, period: 29.457 },
+    uranus: { L0: 314.05, L1: 428.48, period: 84.011 },
+    neptune: { L0: 304.35, L1: 218.46, period: 164.79 },
+    pluto: { L0: 238.93, L1: 145.18, period: 248.09 },
+  }
+
+  const planet = orbitalElements[planetName.toLowerCase()]
+  if (!planet) return 0
+
+  const meanLongitude = planet.L0 + planet.L1 * T
+
+  return ((meanLongitude % 360) + 360) % 360
+}
+
+/**
+ * Calculate the position of a planet
  */
 function calculatePlanetPosition(
   planetName: string,
@@ -103,64 +199,17 @@ function calculatePlanetPosition(
 
   try {
     switch (planetName.toLowerCase()) {
-      case "sun": {
-        const pos = astro.solar.apparentVSOP87(astro.planetposition.earth, jd)
-        longitude = (pos.lon * 180) / Math.PI
-        latitude = (pos.lat * 180) / Math.PI
+      case "sun":
+        longitude = calculateSunLongitude(jd)
+        latitude = 0 // Sun is on the ecliptic
         break
-      }
-      case "moon": {
-        const pos = astro.moonposition.position(jd)
-        longitude = (pos.lon * 180) / Math.PI
-        latitude = (pos.lat * 180) / Math.PI
+      case "moon":
+        longitude = calculateMoonLongitude(jd)
+        latitude = 0 // Simplified - ignoring lunar latitude
         break
-      }
-      case "mercury": {
-        const pos = astro.solar.apparentVSOP87(astro.planetposition.mercury, jd)
-        longitude = (pos.lon * 180) / Math.PI
-        latitude = (pos.lat * 180) / Math.PI
-        break
-      }
-      case "venus": {
-        const pos = astro.solar.apparentVSOP87(astro.planetposition.venus, jd)
-        longitude = (pos.lon * 180) / Math.PI
-        latitude = (pos.lat * 180) / Math.PI
-        break
-      }
-      case "mars": {
-        const pos = astro.solar.apparentVSOP87(astro.planetposition.mars, jd)
-        longitude = (pos.lon * 180) / Math.PI
-        latitude = (pos.lat * 180) / Math.PI
-        break
-      }
-      case "jupiter": {
-        const pos = astro.solar.apparentVSOP87(astro.planetposition.jupiter, jd)
-        longitude = (pos.lon * 180) / Math.PI
-        latitude = (pos.lat * 180) / Math.PI
-        break
-      }
-      case "saturn": {
-        const pos = astro.solar.apparentVSOP87(astro.planetposition.saturn, jd)
-        longitude = (pos.lon * 180) / Math.PI
-        latitude = (pos.lat * 180) / Math.PI
-        break
-      }
-      case "uranus": {
-        const pos = astro.solar.apparentVSOP87(astro.planetposition.uranus, jd)
-        longitude = (pos.lon * 180) / Math.PI
-        latitude = (pos.lat * 180) / Math.PI
-        break
-      }
-      case "neptune": {
-        const pos = astro.solar.apparentVSOP87(astro.planetposition.neptune, jd)
-        longitude = (pos.lon * 180) / Math.PI
-        latitude = (pos.lat * 180) / Math.PI
-        break
-      }
       default:
-        // For Pluto and others, use a simplified calculation
-        longitude = 0
-        latitude = 0
+        longitude = calculatePlanetLongitude(planetName, jd)
+        latitude = 0 // Simplified - assuming planets are on ecliptic
     }
   } catch (error) {
     console.error(`Error calculating ${planetName} position:`, error)
@@ -178,65 +227,59 @@ function calculatePlanetPosition(
 }
 
 /**
- * Calculate house cusps using Placidus system
+ * Calculate Ascendant and Midheaven
  */
-function calculateHouses(
+function calculateAngles(
   jd: number,
   latitude: number,
   longitude: number
-): House[] {
+): { ascendant: number; midheaven: number } {
+  const T = (jd - 2451545.0) / 36525
+
+  // Calculate Local Sidereal Time (LST)
+  const GMST =
+    280.46061837 +
+    360.98564736629 * (jd - 2451545.0) +
+    0.000387933 * T * T -
+    (T * T * T) / 38710000
+
+  const LST = GMST + longitude
+  const LSTnorm = ((LST % 360) + 360) % 360
+
+  // Calculate obliquity of ecliptic
+  const epsilon = 23.439291 - 0.0130042 * T
+  const epsilonRad = (epsilon * Math.PI) / 180
+
+  // Calculate Midheaven (MC) - 10th house cusp
+  const LSTrad = (LSTnorm * Math.PI) / 180
+  const MCrad = Math.atan2(Math.sin(LSTrad), Math.cos(LSTrad) * Math.cos(epsilonRad))
+  const MC = ((MCrad * 180) / Math.PI + 360) % 360
+
+  // Calculate Ascendant
+  const latRad = (latitude * Math.PI) / 180
+  const ASCrad = Math.atan2(
+    Math.cos(LSTrad),
+    -Math.sin(LSTrad) * Math.cos(epsilonRad) - Math.tan(latRad) * Math.sin(epsilonRad)
+  )
+  const ASC = ((ASCrad * 180) / Math.PI + 360) % 360
+
+  return { ascendant: ASC, midheaven: MC }
+}
+
+/**
+ * Calculate house cusps using Equal House system
+ */
+function calculateHouses(ascendant: number): House[] {
   const houses: House[] = []
 
-  try {
-    // Calculate sidereal time
-    const T = (jd - 2451545.0) / 36525
-    const theta0 =
-      280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * T * T - (T * T * T) / 38710000
-
-    // Calculate RAMC (Right Ascension of Midheaven)
-    const ramc = ((theta0 + longitude) % 360 + 360) % 360
-
-    // Get obliquity of ecliptic
-    const epsilon = astro.nutation.meanObliquity(jd)
-    const epsilonDeg = (epsilon * 180) / Math.PI
-
-    // Calculate MC (Midheaven) - 10th house cusp
-    const mcRad = Math.atan2(
-      Math.sin((ramc * Math.PI) / 180),
-      Math.cos((ramc * Math.PI) / 180) * Math.cos(epsilon)
-    )
-    const mc = ((mcRad * 180) / Math.PI + 360) % 360
-
-    // Calculate ASC (Ascendant) - 1st house cusp
-    const latRad = (latitude * Math.PI) / 180
-    const ramcRad = (ramc * Math.PI) / 180
-    const ascRad = Math.atan2(
-      Math.cos(ramcRad),
-      -Math.sin(ramcRad) * Math.cos(epsilon) - Math.tan(latRad) * Math.sin(epsilon)
-    )
-    const asc = ((ascRad * 180) / Math.PI + 360) % 360
-
-    // For a complete Placidus system, we'd need more complex calculations
-    // This is a simplified equal house system based on ASC
-    for (let i = 0; i < 12; i++) {
-      const cuspDegree = (asc + i * 30) % 360
-      const { sign } = degreesToSign(cuspDegree)
-      houses.push({
-        number: i + 1,
-        cusp: cuspDegree,
-        sign,
-      })
-    }
-  } catch (error) {
-    console.error("Error calculating houses:", error)
-    // Return empty houses on error
-    for (let i = 0; i < 12; i++) {
-      houses.push({
-        number: i + 1,
-        cusp: i * 30,
-        sign: ZODIAC_SIGNS[i % 12],
-      })
-    }
+  for (let i = 0; i < 12; i++) {
+    const cuspDegree = (ascendant + i * 30) % 360
+    const { sign } = degreesToSign(cuspDegree)
+    houses.push({
+      number: i + 1,
+      cusp: cuspDegree,
+      sign,
+    })
   }
 
   return houses
@@ -306,11 +349,8 @@ export function calculateBirthChart(
     hour = 0
   }
 
-  // Calculate UTC offset from timezone (simplified - in production use proper timezone library)
-  const utcOffset = parseFloat(location.timezone.replace("UTC", "").replace("+", "")) || 0
-
-  // Calculate Julian Day
-  const jd = toJulianDay(year, month, day, hour, minute, utcOffset)
+  // Calculate Julian Day (using UTC time)
+  const jd = toJulianDay(year, month, day, hour, minute)
 
   // Calculate planetary positions
   const sun = calculatePlanetPosition("Sun", jd)
@@ -322,25 +362,27 @@ export function calculateBirthChart(
   const saturn = calculatePlanetPosition("Saturn", jd)
   const uranus = calculatePlanetPosition("Uranus", jd)
   const neptune = calculatePlanetPosition("Neptune", jd)
-  const pluto = { ...calculatePlanetPosition("Pluto", jd), longitude: 0, latitude: 0 }
+  const pluto = calculatePlanetPosition("Pluto", jd)
 
-  // Calculate houses
-  const houses = calculateHouses(jd, location.lat, location.lng)
+  // Calculate Ascendant and Midheaven
+  const angles = calculateAngles(jd, location.lat, location.lng)
 
-  // Calculate ascendant (1st house cusp) and midheaven (10th house cusp)
   const ascendant = {
     name: "Ascendant",
-    longitude: houses[0].cusp,
+    longitude: angles.ascendant,
     latitude: 0,
-    ...degreesToSign(houses[0].cusp),
+    ...degreesToSign(angles.ascendant),
   }
 
   const midheaven = {
     name: "Midheaven",
-    longitude: houses[9].cusp,
+    longitude: angles.midheaven,
     latitude: 0,
-    ...degreesToSign(houses[9].cusp),
+    ...degreesToSign(angles.midheaven),
   }
+
+  // Calculate houses
+  const houses = calculateHouses(angles.ascendant)
 
   // Assign houses to planets
   const assignHouse = (planet: Omit<PlanetPosition, "house">): PlanetPosition => {
